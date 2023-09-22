@@ -8,7 +8,7 @@
 <body>
     <h1>Voucher generator</h1>
     <div id="content"></div>
-    <form id="form" hidden>
+    <form id="voucherForm" hidden>
         <fieldset>
             <legend>Select vouchers to generate</legend>
             <table id="products">
@@ -58,91 +58,93 @@
 
     <script>
         const API_BASE = "https://core.prd.analogio.dk";
-        let authToken = localStorage.getItem("authToken");
-        let userInfo = {};
+        const authToken = localStorage.getItem("authToken");
 
-        if (!authToken) {
-            document.getElementById("content").innerHTML = '<p>You are not authenticated. <a href="login.html">Login</a></p>';
-        } else {
-            fetch(API_BASE + "/api/v2/account", {
-                headers: {
-                    "Authorization": `Bearer ${authToken}`
-                }
-            })
-                .then(response => response.json())
-                .then(data => {
-                    userInfo = data;
-                    document.getElementById("content").innerHTML = `<p>Hi ${userInfo.name} (${userInfo.email})</p>`;
-                    document.getElementById("form").toggleAttribute("hidden");
-                })
-                .catch(error => {
-                    console.error(error);
-                    document.getElementById("content").innerHTML = '<p>' + error + ' <a href="login.html">Login</a></p>';
+        async function fetchFromAPI(endpoint, options = {}) {
+            try {
+                const response = await fetch(`${API_BASE}${endpoint}`, {
+                    ...options,
+                    headers: {
+                        "Authorization": `Bearer ${authToken}`,
+                        "Content-Type": "application/json",
+                        ...options.headers
+                    }
                 });
+                if (!response.ok) throw new Error(await response.text());
+                return await response.json();
+            } catch (error) {
+                console.error(error);
+                alert(error);
+                throw error;
+            }
         }
 
-        document.getElementById("form").addEventListener("submit", generateVouchers);
+        document.getElementById("voucherForm").addEventListener("submit", async (event) => {
+            event.preventDefault();
+            await generateVoucherCodes();
+        });
 
-        async function generateVouchers(event) {
-            event.preventDefault(); // Prevent form from submitting
-
+        async function generateVoucherCodes() {
             const voucherPrefix = document.getElementById("voucherPrefix").value;
             const description = document.getElementById("description").value;
-            const requester = document.getElementById("requester").value + " (via Voucher Generator)";
-
-            const tableRows = document.getElementById("products").querySelectorAll("tbody tr");
+            const requester = `${document.getElementById("requester").value} (via Voucher Generator)`;
+            const tableRows = document.querySelectorAll("#products tbody tr");
             let issuedVouchers = {};
 
             for (const row of tableRows) {
-                const name = row.cells[1].innerText;
-                const id = row.cells[2].innerText;
-                const amount = document.getElementById(`amount-${id}`).value;
+                const [amountCell, nameCell, idCell] = row.cells;
+                const amount = amountCell.querySelector('input').value;
+                const name = nameCell.textContent;
+                const id = idCell.textContent;
 
                 if (amount <= 0) continue;
 
                 const payload = {
-                    "ProductId": parseInt(id),
-                    "Amount": parseInt(amount),
-                    "VoucherPrefix": voucherPrefix,
-                    "Description": description,
-                    "Requester": requester
+                    ProductId: parseInt(id),
+                    Amount: parseInt(amount),
+                    VoucherPrefix: voucherPrefix,
+                    Description: description,
+                    Requester: requester
                 };
 
-                const response = await fetch(API_BASE + "/api/v2/vouchers/issue-vouchers", {
-                    method: "POST",
-                    headers: {
-                        "Content-Type": "application/json",
-                        "Authorization": `Bearer ${authToken}`
-                    },
-                    body: JSON.stringify(payload)
-                });
-
-                const data = await response.json();
-
-                if (response.ok) {
+                try {
+                    const data = await fetchFromAPI("/api/v2/vouchers/issue-vouchers", {
+                        method: "POST",
+                        body: JSON.stringify(payload)
+                    });
                     issuedVouchers[name] = data;
-                } else {
-                    console.error(`Failed to issue vouchers for ${name}`);
+                } catch (error) {
+                    console.error(`Failed to issue vouchers for ${name}: ${error}`);
+                    alert(`Failed to issue vouchers for ${name}: ${error}`);
                 }
             }
 
-            document.getElementById("form").toggleAttribute("hidden");
-            displayIssuedVouchers(issuedVouchers);
+            displayGeneratedVouchers(issuedVouchers);
         }
 
-        function displayIssuedVouchers(issuedVouchers) {
+        function displayGeneratedVouchers(issuedVouchers) {
             let outputHTML = "<h2>Issued Vouchers:</h2>";
-
             for (const [productName, vouchers] of Object.entries(issuedVouchers)) {
                 outputHTML += `<h3>${productName} vouchers:</h3><pre><code>`;
-                vouchers.forEach(voucher => {
-                    outputHTML += `${voucher.voucherCode}\n`;
+                vouchers.forEach(({ voucherCode }) => {
+                    outputHTML += `${voucherCode}\n`;
                 });
                 outputHTML += "</code></pre>";
             }
-
             document.getElementById("issuedVouchers").innerHTML = outputHTML;
         }
+
+        (async () => {
+            try {
+                const userInfo = await fetchFromAPI("/api/v2/account");
+                document.getElementById("content").innerHTML = `<p>Hi ${userInfo.name} (${userInfo.email})</p>`;
+                document.getElementById("voucherForm").removeAttribute("hidden");
+            } catch (error) {
+                console.error(error);
+                alert(error);
+                document.getElementById("content").innerHTML = `<p>${error} <a href="login.html">Login</a></p>`;
+            }
+        })();
     </script>
 </body>
 
