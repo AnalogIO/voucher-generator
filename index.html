@@ -76,11 +76,11 @@
             let summary = "You will generate vouchers for:\n";
 
             tableRows.forEach(row => {
-                const amount = document.getElementById(`amount-${id}`).value;
-                if (!amount) return;
-                
                 const name = row.cells[1].innerText;
                 const id = row.cells[2].innerText;
+
+                const amount = document.getElementById(`amount-${id}`).value;
+                if (!amount) return;
 
                 summary += `${name} (ID: ${id}) - Amount: ${amount}\n`;
             });
