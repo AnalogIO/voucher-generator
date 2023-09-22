@@ -25,34 +25,30 @@
             const password = document.getElementById("password").value;
             const version = "9.0.0";
 
-            const base = "https://core.prd.analogio.dk";
+            const API_BASE = "https://core.prd.analogio.dk";
 
-            fetch(base + "/api/v1/Account/login", {
-                    method: "POST",
-                    headers: {
-                        "Content-Type": "application/json"
-                    },
-                    body: JSON.stringify({
-                        email,
-                        password,
-                        version
-                    })
-                })
-                .then(response => {
-                    if (response.status === 200) {
-                        return response.json();
+            const xhr = new XMLHttpRequest();
+            xhr.open("POST", API_BASE + "/api/v1/Account/login", true);
+            xhr.setRequestHeader("Content-Type", "application/json;charset=UTF-8");
+
+            xhr.onreadystatechange = function() {
+                if (xhr.readyState === 4) {
+                    if (xhr.status === 200) {
+                        const data = JSON.parse(xhr.responseText);
+                        const authToken = data.token;
+                        document.cookie = `authToken=${authToken}; path=/`;
+                        window.location.href = "index.html";
                     } else {
-                        throw new Error(`Failed with status: ${response.status}`);
+                        console.error(`Failed with status: ${xhr.status}`);
                     }
-                })
-                .then(data => {
-                    const authToken = data.token;
-                    document.cookie = `authToken=${authToken}; path=/`;
-                    window.location.href = "index.html";
-                })
-                .catch(error => {
-                    console.error("Error:", error);
-                });
+                }
+            };
+
+            xhr.send(JSON.stringify({
+                email,
+                password,
+                version
+            }));
         });
     </script>
 </body>
