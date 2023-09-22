@@ -8,26 +8,34 @@
 <body>
     <h1>Voucher generator</h1>
     <div id="content"></div>
-    <label for="voucherPrefix">Voucher Prefix:</label>
-    <input type="text" id="voucherPrefix">
-    <label for="description">Description:</label>
-    <input type="text" id="description">
-    <label for="requester">Requester:</label>
-    <input type="text" id="requester">
-    <table id="products">
-        <thead>
-            <tr>
-                <th>Amount to Generate</th>
-                <th>Name</th>
-                <th>ID</th>
-                <th>Description</th>
-            </tr>
-        </thead>
-        <tbody>
-            <!-- Products will be inserted here -->
-        </tbody>
-    </table>
-    <button onclick="generateVouchers()">Generate!</button>
+    <form id="form" hidden>
+        <fieldset>
+            <legend>Select vouchers to generate</legend>
+            <table id="products">
+                <thead>
+                    <tr>
+                        <th>Amount to Generate</th>
+                        <th>Name</th>
+                        <th>ID</th>
+                        <th>Description</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <!-- Products will be inserted here -->
+                </tbody>
+            </table>
+        </fieldset>
+        <fieldset>
+            <legend>Additional details (required)</legend>
+            <label for="voucherPrefix">Voucher Prefix (3 letters):</label>
+            <input type="text" id="voucherPrefix" minlength="3" maxlength="3" required>
+            <label for="description">Description:</label>
+            <input type="text" id="description" required>
+            <label for="requester">Requester:</label>
+            <input type="text" id="requester" required>
+        </fieldset>
+        <input type="submit" value="Generate!">
+    </form>
     <div id="issuedVouchers"></div>
 
     <script>
@@ -47,6 +55,7 @@
                 .then(data => {
                     userInfo = data;
                     document.getElementById("content").innerHTML = `<p>Hi ${userInfo.name} (${userInfo.email})</p>`;
+                    document.getElementById("form").toggleAttribute("hidden");
                     return fetch(API_BASE + "/api/v1/Products");
                 })
                 .then(response => response.json())
@@ -68,10 +77,14 @@
                 });
         }
 
-        async function generateVouchers() {
+        document.getElementById("form").addEventListener("submit", generateVouchers);
+
+        async function generateVouchers(event) {
+            event.preventDefault(); // Prevent form from submitting
+
             const voucherPrefix = document.getElementById("voucherPrefix").value;
             const description = document.getElementById("description").value;
-            const requester = document.getElementById("requester").value;
+            const requester = document.getElementById("requester").value + " (via Voucher Generator)";
 
             const tableRows = document.getElementById("products").querySelectorAll("tbody tr");
             let issuedVouchers = {};
@@ -109,6 +122,7 @@
                 }
             }
 
+            document.getElementById("form").toggleAttribute("hidden");
             displayIssuedVouchers(issuedVouchers);
         }
 
@@ -118,7 +132,7 @@
             for (const [productName, vouchers] of Object.entries(issuedVouchers)) {
                 outputHTML += `<h3>${productName}</h3><ul>`;
                 vouchers.forEach(voucher => {
-                    outputHTML += `<li>${voucher.voucherCode} (Issued At: ${new Date(voucher.issuedAt).toLocaleString()})</li>`;
+                    outputHTML += `<li>${voucher.voucherCode}</li>`;
                 });
                 outputHTML += "</ul>";
             }
