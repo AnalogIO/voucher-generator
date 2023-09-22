@@ -118,7 +118,7 @@
             for (const [productName, vouchers] of Object.entries(issuedVouchers)) {
                 outputHTML += `<h3>${productName}</h3><ul>`;
                 vouchers.forEach(voucher => {
-                    outputHTML += `<li>${voucher.VoucherCode} (Issued At: ${new Date(voucher.IssuedAt).toLocaleString()})</li>`;
+                    outputHTML += `<li>${voucher.voucherCode} (Issued At: ${new Date(voucher.issuedAt).toLocaleString()})</li>`;
                 });
                 outputHTML += "</ul>";
             }
