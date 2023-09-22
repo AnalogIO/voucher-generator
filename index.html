@@ -11,10 +11,10 @@
     <table id="products">
         <thead>
             <tr>
+                <th>Amount to Generate</th>
                 <th>Name</th>
                 <th>ID</th>
                 <th>Description</th>
-                <th>Amount to Generate</th>
             </tr>
         </thead>
         <tbody>
@@ -56,10 +56,10 @@
                     let productHTML = "";
                     data.forEach(product => {
                         productHTML += `<tr>
+                            <td><input type="number" id="amount-${product.id}" min="0" value="0"></td>
                             <td>${product.name}</td>
                             <td>${product.id}</td>
                             <td>${product.description}</td>
-                            <td><input type="number" id="amount-${product.id}" min="1" value="1"></td>
                         </tr>`;
                     });
                     document.getElementById("products").querySelector("tbody").innerHTML = productHTML;
@@ -76,9 +76,11 @@
             let summary = "You will generate vouchers for:\n";
 
             tableRows.forEach(row => {
-                const name = row.cells[0].innerText;
-                const id = row.cells[1].innerText;
                 const amount = document.getElementById(`amount-${id}`).value;
+                if (!amount) return;
+                
+                const name = row.cells[1].innerText;
+                const id = row.cells[2].innerText;
 
                 summary += `${name} (ID: ${id}) - Amount: ${amount}\n`;
             });
