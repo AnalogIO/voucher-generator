@@ -17,6 +17,13 @@
         <input type="submit" value="Login">
     </form>
 
+    <!-- Hidden form - used for password manager prompt -->
+    <form id="hiddenForm" style="display: none;">
+        <input type="email" id="hiddenEmail" name="email">
+        <input type="password" id="hiddenPassword" name="password">
+        <input type="submit" value="Submit">
+    </form>
+
     <script>
         document.getElementById("loginForm").addEventListener("submit", function(event) {
             event.preventDefault(); // Prevent the form from submitting
@@ -36,6 +43,11 @@
                     if (xhr.status === 200) {
                         const data = JSON.parse(xhr.responseText);
                         localStorage.setItem("authToken", data.token);
+
+                        // Populate and submit the hidden form to trigger password save
+                        document.getElementById("hiddenEmail").value = email;
+                        document.getElementById("hiddenPassword").value = password;
+                        document.getElementById("hiddenForm").submit();
 
                         window.location.href = "index.html";
                     } else {
