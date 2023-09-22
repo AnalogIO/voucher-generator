@@ -24,6 +24,17 @@
     <button onclick="generateVouchers()">Generate!</button>
 
     <script>
+        class Tuple extends Array {
+            constructor(...items) {
+                super(...items);
+                Object.freeze(this);
+            }
+
+            toString() {
+                return `Tuple(${this.join(", ")})`;
+            }
+        }
+
         const API_BASE = "https://core.prd.analogio.dk";
         let authToken = localStorage.getItem("authToken");
         let userInfo = {};
@@ -32,10 +43,10 @@
             document.getElementById("content").innerHTML = '<p>You are not authenticated. <a href="login.html">Login</a></p>';
         } else {
             fetch(API_BASE + "/api/v2/account", {
-                    headers: {
-                        "Authorization": `Bearer ${authToken}`
-                    }
-                })
+                headers: {
+                    "Authorization": `Bearer ${authToken}`
+                }
+            })
                 .then(response => {
                     if (response.status === 200) {
                         return response.json();
@@ -73,6 +84,7 @@
 
         function generateVouchers() {
             const tableRows = document.getElementById("products").querySelectorAll("tbody tr");
+            let generateList = [];
             let summary = "You will generate vouchers for:\n";
 
             tableRows.forEach(row => {
@@ -82,10 +94,11 @@
                 const amount = document.getElementById(`amount-${id}`).value;
                 if (!amount) return;
 
-                summary += `${name} (ID: ${id}) - Amount: ${amount}\n`;
+                generateList.push(new Tuple(id, amount));
+
             });
 
-            alert(summary);
+            alert(generateList);
         }
     </script>
 </body>
