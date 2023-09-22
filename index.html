@@ -14,14 +14,32 @@
             <table id="products">
                 <thead>
                     <tr>
-                        <th>Amount to Generate</th>
+                        <th>Amount</th>
                         <th>Name</th>
                         <th>ID</th>
-                        <th>Description</th>
                     </tr>
                 </thead>
                 <tbody>
-                    <!-- Products will be inserted here -->
+                    <tr>
+                        <td><input type="number" id="amount-6" min="0" value="0"></td>
+                        <td>Single filter</td>
+                        <td>6</td>
+                    </tr>
+                    <tr>
+                        <td><input type="number" id="amount-15" min="0" value="0"></td>
+                        <td>Single fancy</td>
+                        <td>15</td>
+                    </tr>
+                    <tr>
+                        <td><input type="number" id="amount-7" min="0" value="0"></td>
+                        <td>10 filter</td>
+                        <td>7</td>
+                    </tr>
+                    <tr>
+                        <td><input type="number" id="amount-14" min="0" value="0"></td>
+                        <td>10 fancy</td>
+                        <td>14</td>
+                    </tr>
                 </tbody>
             </table>
         </fieldset>
@@ -56,20 +74,6 @@
                     userInfo = data;
                     document.getElementById("content").innerHTML = `<p>Hi ${userInfo.name} (${userInfo.email})</p>`;
                     document.getElementById("form").toggleAttribute("hidden");
-                    return fetch(API_BASE + "/api/v1/Products");
-                })
-                .then(response => response.json())
-                .then(data => {
-                    let productHTML = "";
-                    data.forEach(product => {
-                        productHTML += `<tr>
-                        <td><input type="number" id="amount-${product.id}" min="0" value="0"></td>
-                        <td>${product.name}</td>
-                        <td>${product.id}</td>
-                        <td>${product.description}</td>
-                    </tr>`;
-                    });
-                    document.getElementById("products").querySelector("tbody").innerHTML = productHTML;
                 })
                 .catch(error => {
                     console.error(error);
@@ -130,11 +134,11 @@
             let outputHTML = "<h2>Issued Vouchers:</h2>";
 
             for (const [productName, vouchers] of Object.entries(issuedVouchers)) {
-                outputHTML += `<h3>${productName}</h3><ul>`;
+                outputHTML += `<h3>${productName} vouchers:</h3><pre><code>`;
                 vouchers.forEach(voucher => {
-                    outputHTML += `<li>${voucher.voucherCode}</li>`;
+                    outputHTML += `${voucher.voucherCode}\n`;
                 });
-                outputHTML += "</ul>";
+                outputHTML += "</code></pre>";
             }
 
             document.getElementById("issuedVouchers").innerHTML = outputHTML;
