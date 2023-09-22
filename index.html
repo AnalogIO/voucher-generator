@@ -8,6 +8,12 @@
 <body>
     <h1>Voucher generator</h1>
     <div id="content"></div>
+    <label for="voucherPrefix">Voucher Prefix:</label>
+    <input type="text" id="voucherPrefix">
+    <label for="description">Description:</label>
+    <input type="text" id="description">
+    <label for="requester">Requester:</label>
+    <input type="text" id="requester">
     <table id="products">
         <thead>
             <tr>
@@ -22,19 +28,9 @@
         </tbody>
     </table>
     <button onclick="generateVouchers()">Generate!</button>
+    <div id="issuedVouchers"></div>
 
     <script>
-        class Tuple extends Array {
-            constructor(...items) {
-                super(...items);
-                Object.freeze(this);
-            }
-
-            toString() {
-                return `Tuple(${this.join(", ")})`;
-            }
-        }
-
         const API_BASE = "https://core.prd.analogio.dk";
         let authToken = localStorage.getItem("authToken");
         let userInfo = {};
@@ -47,18 +43,9 @@
                     "Authorization": `Bearer ${authToken}`
                 }
             })
-                .then(response => {
-                    if (response.status === 200) {
-                        return response.json();
-                    } else {
-                        throw new Error("Your authentication token expired.");
-                    }
-                })
+                .then(response => response.json())
                 .then(data => {
                     userInfo = data;
-                    if (userInfo.role === "Customer" || userInfo.role === "Barista") {
-                        throw new Error("You don't have rights to generate vouchers.");
-                    }
                     document.getElementById("content").innerHTML = `<p>Hi ${userInfo.name} (${userInfo.email})</p>`;
                     return fetch(API_BASE + "/api/v1/Products");
                 })
@@ -67,38 +54,76 @@
                     let productHTML = "";
                     data.forEach(product => {
                         productHTML += `<tr>
-                            <td><input type="number" id="amount-${product.id}" min="0" value="0"></td>
-                            <td>${product.name}</td>
-                            <td>${product.id}</td>
-                            <td>${product.description}</td>
-                        </tr>`;
+                        <td><input type="number" id="amount-${product.id}" min="0" value="0"></td>
+                        <td>${product.name}</td>
+                        <td>${product.id}</td>
+                        <td>${product.description}</td>
+                    </tr>`;
                     });
                     document.getElementById("products").querySelector("tbody").innerHTML = productHTML;
                 })
                 .catch(error => {
                     console.error(error);
-                    document.getElementById("content").innerHTML = '<p>' +
-                        error + ' <a href="login.html">Login</a></p>';
+                    document.getElementById("content").innerHTML = '<p>' + error + ' <a href="login.html">Login</a></p>';
                 });
         }
 
-        function generateVouchers() {
-            const tableRows = document.getElementById("products").querySelectorAll("tbody tr");
-            let generateList = [];
-            let summary = "You will generate vouchers for:\n";
+        async function generateVouchers() {
+            const voucherPrefix = document.getElementById("voucherPrefix").value;
+            const description = document.getElementById("description").value;
+            const requester = document.getElementById("requester").value;
 
-            tableRows.forEach(row => {
+            const tableRows = document.getElementById("products").querySelectorAll("tbody tr");
+            let issuedVouchers = {};
+
+            for (const row of tableRows) {
                 const name = row.cells[1].innerText;
                 const id = row.cells[2].innerText;
-
                 const amount = document.getElementById(`amount-${id}`).value;
-                if (!amount) return;
 
-                generateList.push(new Tuple(id, amount));
+                if (amount <= 0) continue;
 
-            });
+                const payload = {
+                    "ProductId": parseInt(id),
+                    "Amount": parseInt(amount),
+                    "VoucherPrefix": voucherPrefix,
+                    "Description": description,
+                    "Requester": requester
+                };
 
-            alert(generateList);
+                const response = await fetch(API_BASE + "/api/v2/vouchers/issue-vouchers", {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json",
+                        "Authorization": `Bearer ${authToken}`
+                    },
+                    body: JSON.stringify(payload)
+                });
+
+                const data = await response.json();
+
+                if (response.ok) {
+                    issuedVouchers[name] = data;
+                } else {
+                    console.error(`Failed to issue vouchers for ${name}`);
+                }
+            }
+
+            displayIssuedVouchers(issuedVouchers);
+        }
+
+        function displayIssuedVouchers(issuedVouchers) {
+            let outputHTML = "<h2>Issued Vouchers:</h2>";
+
+            for (const [productName, vouchers] of Object.entries(issuedVouchers)) {
+                outputHTML += `<h3>${productName}</h3><ul>`;
+                vouchers.forEach(voucher => {
+                    outputHTML += `<li>${voucher.VoucherCode} (Issued At: ${new Date(voucher.IssuedAt).toLocaleString()})</li>`;
+                });
+                outputHTML += "</ul>";
+            }
+
+            document.getElementById("issuedVouchers").innerHTML = outputHTML;
         }
     </script>
 </body>
