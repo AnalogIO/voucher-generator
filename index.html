@@ -8,15 +8,55 @@
 <body>
     <h1>Voucher generator</h1>
     <div id="content"></div>
+    <div id="products"></div>
 
     <script>
-        const authToken = localStorage.getItem("authToken");
+        const API_BASE = "https://core.prd.analogio.dk";
+        let authToken = localStorage.getItem("authToken");
+        let userInfo = {};
 
-        if (authToken) {
-            document.getElementById("content").innerHTML = "<p>You are authenticated.</p>";
-        } else {
+        // Step 1: Check for auth token
+        if (!authToken) {
             document.getElementById("content").innerHTML = '<p>You are not authenticated. <a href="login.html">Login</a></p>';
         }
+        // Step 2: Validate auth token and permissions
+        fetch(API_BASE + "/api/v2/account", {
+                headers: {
+                    "Authorization": `Bearer ${authToken}`
+                }
+            })
+            .then(response => {
+                if (response.status === 200) {
+                    return response.json();
+                } else {
+                    throw new Error("Unauthorized");
+                }
+            })
+            .then(data => {
+                userInfo = data;
+                // Step 2.5: Check role
+                if (userInfo.role === "Customer" || userInfo.role === "Barista") {
+                    throw new Error("Insufficient rights");
+                }
+                // Step 3: Display name and email
+                document.getElementById("content").innerHTML = `<p>Hi ${userInfo.name} (${userInfo.email})</p>`;
+                // Step 4: Fetch products
+                return fetch(API_BASE + "/api/v1/Products");
+            })
+            .then(response => response.json())
+            .then(data => {
+                // Step 5: Display products
+                let productHTML = "<ul>";
+                data.forEach(product => {
+                    productHTML += `<li>${product.name} (ID: ${product.id}) - ${product.description}</li>`;
+                });
+                productHTML += "</ul>";
+                document.getElementById("products").innerHTML = productHTML;
+            })
+            .catch(error => {
+                console.error(error);
+                document.getElementById("content").innerHTML = '<p>You are not authenticated. <a href="login.html">Login</a></p>';
+            });
     </script>
 </body>
 
